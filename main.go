@@ -19,7 +19,7 @@ var systemFitler = flag.String("system-filter", ".*", "A regex by which to white
 
 func main() {
 	flag.Parse()
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.WarnLevel)
 	groupFilterRegex := regexp.MustCompile(*groupFitler)
 	systemFilterRegex := regexp.MustCompile(*systemFitler)
 	var lastEventAt *prometheus.GaugeVec
@@ -53,7 +53,7 @@ func main() {
 				}
 			}
 
-			log.Info("loop")
+			log.Debug("loop")
 			time.Sleep(60 * time.Second)
 		}
 	}()
