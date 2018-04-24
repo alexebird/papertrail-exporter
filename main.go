@@ -17,6 +17,7 @@ import (
 var addr = flag.String("listen-address", ":8080", "The address to listen on for HTTP requests.")
 var groupFitler = flag.String("group-filter", ".*", "A regex by which to whitelist group names.")
 var systemFitler = flag.String("system-filter", ".*", "A regex by which to whitelist system names.")
+var logLevel = flag.String("log-level", "warn", "Log level: debug, info, warn, error, fatal, panic")
 
 // re-register so that old systems are purged from the metrics
 func reRegisterGaugeVec(metric *prometheus.GaugeVec) *prometheus.GaugeVec {
@@ -76,7 +77,11 @@ func refreshPapertrailSystems(groupRegex *regexp.Regexp, sysRegex *regexp.Regexp
 
 func main() {
 	flag.Parse()
-	log.SetLevel(log.DebugLevel)
+	lvl, err := log.ParseLevel(*logLevel)
+	if err != nil {
+		panic(err)
+	}
+	log.SetLevel(lvl)
 	groupFilterRegex := regexp.MustCompile(*groupFitler)
 	systemFilterRegex := regexp.MustCompile(*systemFitler)
 
