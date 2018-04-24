@@ -2,6 +2,7 @@ package papertrail
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 	//"github.com/davecgh/go-spew/spew"
 )
@@ -12,34 +13,56 @@ type Group struct {
 }
 
 type System struct {
+	Id             int
 	Name           string
+	GroupName      string
 	LastEventAtRaw string `json:"last_event_at"`
 	LastEventAt    time.Time
 }
 
-func ListGroups() []Group {
+func ListSystems() ([]System, error) {
 	body, err := getJson("/groups.json")
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	var dat []Group
+	var groups []Group
+	var systems []System = make([]System, 0)
 
-	if err := json.Unmarshal(body, &dat); err != nil {
-		panic(err)
+	if err := json.Unmarshal(body, &groups); err != nil {
+		return nil, err
 	}
 
-	for _, group := range dat {
-		for i, system := range group.Systems {
+	for _, group := range groups {
+		for _, system := range group.Systems {
 			t, err := time.Parse(time.RFC3339, system.LastEventAtRaw)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
+
 			system.LastEventAt = t
-			group.Systems[i] = system
+			system.GroupName = group.Name
+			systems = append(systems, system)
 		}
 	}
 
-	return dat
+	return systems, nil
+}
+
+func FilterSystems(groupRegexp *regexp.Regexp, sysRegexp *regexp.Regexp) ([]System, error) {
+	systems, err := ListSystems()
+	if err != nil {
+		return nil, err
+	}
+
+	filteredSystems := make([]System, 0)
+
+	for _, sys := range systems {
+		if groupRegexp.MatchString(sys.GroupName) && sysRegexp.MatchString(sys.Name) {
+			filteredSystems = append(filteredSystems, sys)
+		}
+	}
+
+	return filteredSystems, nil
 }
