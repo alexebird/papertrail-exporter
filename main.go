@@ -50,6 +50,7 @@ func ec2InstancePresentLabelValue(instances map[string]bool, system papertrail.S
 
 func refreshPapertrailSystems(groupRegex *regexp.Regexp, sysRegex *regexp.Regexp) {
 	var lastEventAtMetric *prometheus.GaugeVec
+	var instances map[string]bool
 
 	for {
 		lastEventAtMetric = reRegisterGaugeVec(lastEventAtMetric)
@@ -59,14 +60,27 @@ func refreshPapertrailSystems(groupRegex *regexp.Regexp, sysRegex *regexp.Regexp
 			log.Fatal(err)
 		}
 
-		instances, err := ec2.InstanceNames()
-		if err != nil {
-			log.Fatal(err)
+		// sleep when getting instance names to account for propigation of IAM keys.
+		i := 0
+		for i < 10 {
+			var err error
+			instances, err = ec2.InstanceNames()
+
+			if err != nil {
+				log.Error(err)
+				time.Sleep(2 * time.Second)
+				i += 1
+			} else {
+				log.Debug("iam loop breaking")
+				break
+			}
 		}
 
+		log.Debug(instances)
+
 		for _, system := range systems {
-			log.Debug(system.GroupName + " " + system.Name)
 			present := ec2InstancePresentLabelValue(instances, system)
+			log.Debug("group=" + system.GroupName + " system=" + system.Name + " ec2=" + present)
 			lastEventAtMetric.WithLabelValues(system.GroupName, system.Name, present).Set(float64(system.LastEventAt.Unix()))
 		}
 
