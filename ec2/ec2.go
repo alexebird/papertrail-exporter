@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	//"github.com/davecgh/go-spew/spew"
 )
 
 var client *ec2.EC2
@@ -48,11 +49,18 @@ func getTagValue(inst *ec2.Instance, tagKey string) *string {
 	return nil
 }
 
-func instanceName(inst *ec2.Instance) string {
+func instanceName(inst *ec2.Instance) *string {
 	ip := inst.PrivateIpAddress
-	ip2 := strings.Replace(*ip, ".", "-", -1)
+	//spew.Dump(ip)
 
-	return fmt.Sprintf("%s-ip-%s", *getTagValue(inst, "Name"), ip2)
+	if ip == nil {
+		return nil
+	}
+
+	ip2 := strings.Replace(*ip, ".", "-", -1)
+	ip2ptr := fmt.Sprintf("%s-ip-%s", *getTagValue(inst, "Name"), ip2)
+
+	return &ip2ptr
 }
 
 func InstanceNames() (map[string]bool, error) {
@@ -65,7 +73,9 @@ func InstanceNames() (map[string]bool, error) {
 
 	for _, inst := range instances {
 		instName := instanceName(inst)
-		names[instName] = true
+		if instName != nil {
+			names[*instName] = true
+		}
 	}
 
 	return names, nil
